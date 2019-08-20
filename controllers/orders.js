@@ -3,6 +3,8 @@ const Customers = require("../models/customers");
 const Orders = require("../models/orders");
 const Products = require("../models/products");
 
+//Was starting down a promise chain for each index
+//but Promise.all feels faster and succinct
 exports.getOrders = (req, res, next) => {
   Promise.all([
     Customers.getCustomers(),
@@ -24,6 +26,7 @@ exports.getOrders = (req, res, next) => {
 const processOrder = (customers, orders, products) => {
   const finalOrders = [];
 
+  //Creating an object vs looping & looping within each order
   const customersObj = mapToObj(customers);
   const productsObj = mapToObj(products);
 
@@ -34,6 +37,8 @@ const processOrder = (customers, orders, products) => {
     const { id } = anOrder.ref;
     const { customer, line, shipAddress, status } = anOrder.data;
 
+    //use the shipping address from the order not the customer in case they are shipping a gift etc
+    //I like defaults of false but have used others as well
     const orderWithData = {
       orderId: id,
       orderItems: [],
@@ -42,14 +47,14 @@ const processOrder = (customers, orders, products) => {
       status: status ? status : false,
       total: 0
     };
-
+    //Assume we just want the full name for the shipping label
     if (customer && customer.id) {
       const custObj = customersObj[customer.id];
       orderWithData["customerName"] = `${custObj.firstName} ${
         custObj.lastName
       }`;
     }
-
+    //Handle the order total and subtotal for each type here mapping over the order
     if (line) {
       line.map(prod => {
         const { quantity, price, product } = prod;
